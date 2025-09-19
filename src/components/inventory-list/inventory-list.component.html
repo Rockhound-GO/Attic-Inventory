@@ -1,0 +1,83 @@
+<div class="bg-white rounded-2xl shadow-lg border border-stone-200 dark:bg-stone-800 dark:border-stone-700">
+  
+  <!-- Header and Sorting -->
+  <div class="p-6">
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      <h2 class="text-2xl font-bold text-stone-800 dark:text-stone-100">Current Inventory</h2>
+      <div class="flex items-center gap-x-2 text-sm">
+        <span class="text-stone-500 dark:text-stone-400 font-medium">Sort by:</span>
+        <div class="flex items-center gap-x-1 rounded-lg p-1 bg-stone-100 dark:bg-stone-900/50">
+          <button (click)="onSetSort('name')" title="Sort by item name" [class.bg-white]="inventoryService.sortKey() === 'name'" [class.dark:bg-stone-700]="inventoryService.sortKey() === 'name'" class="px-2 py-1 rounded-md font-semibold transition-colors" [class.text-amber-600]="inventoryService.sortKey() === 'name'" [class.dark:text-amber-400]="inventoryService.sortKey() === 'name'">Name</button>
+          <button (click)="onSetSort('createdAt')" title="Sort by date added" [class.bg-white]="inventoryService.sortKey() === 'createdAt'" [class.dark:bg-stone-700]="inventoryService.sortKey() === 'createdAt'" class="px-2 py-1 rounded-md font-semibold transition-colors" [class.text-amber-600]="inventoryService.sortKey() === 'createdAt'" [class.dark:text-amber-400]="inventoryService.sortKey() === 'createdAt'">Date</button>
+          <button (click)="onSetSort('value')" title="Sort by item value" [class.bg-white]="inventoryService.sortKey() === 'value'" [class.dark:bg-stone-700]="inventoryService.sortKey() === 'value'" class="px-2 py-1 rounded-md font-semibold transition-colors" [class.text-amber-600]="inventoryService.sortKey() === 'value'" [class.dark:text-amber-400]="inventoryService.sortKey() === 'value'">Value</button>
+        </div>
+        <button (click)="onSetSort(inventoryService.sortKey())" [title]="inventoryService.sortDirection() === 'asc' ? 'Sort descending' : 'Sort ascending'" class="p-2 rounded-md hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
+          <svg class="w-5 h-5 text-stone-600 dark:text-stone-400 transition-transform" [class.rotate-180]="inventoryService.sortDirection() === 'asc'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Actions Bar -->
+  @if (inventoryService.selectedItemCount() > 0) {
+    <div class="sticky top-0 z-10 bg-amber-50 dark:bg-stone-900/80 backdrop-blur-sm border-y border-amber-200 dark:border-stone-700 px-6 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-x-3">
+          <input type="checkbox"
+               class="h-5 w-5 rounded border-stone-400 text-amber-600 focus:ring-amber-500 dark:bg-stone-900 dark:border-stone-600"
+               [checked]="inventoryService.areAllSelected()"
+               (change)="inventoryService.toggleSelectAll()"
+               title="Select all items"
+               aria-label="Select all items">
+          <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">{{ inventoryService.selectedItemCount() }} item(s) selected</p>
+        </div>
+        <div class="flex items-center gap-x-2">
+            <select (change)="onBulkStatusChange($event)" title="Change status for selected items" class="text-xs rounded-md border-stone-300 dark:bg-stone-700 dark:border-stone-600 dark:text-white focus:ring-amber-500 focus:border-amber-500">
+                <option value="" disabled selected>Change Status...</option>
+                <option value="To Sort">To Sort</option>
+                <option value="To Photograph">To Photograph</option>
+                <option value="To Value">To Value</option>
+                <option value="Done">Done</option>
+            </select>
+            <select (change)="onBulkTypeChange($event)" title="Change type for selected items" class="text-xs rounded-md border-stone-300 dark:bg-stone-700 dark:border-stone-600 dark:text-white focus:ring-amber-500 focus:border-amber-500">
+                <option value="" disabled selected>Change Type...</option>
+                @for(type of inventoryService.types(); track type) {
+                    <option [value]="type">{{type}}</option>
+                }
+            </select>
+            <button (click)="showBulkDeleteConfirmation.set(true)" title="Delete all selected items" class="text-sm font-semibold text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-500/10">Delete</button>
+            <button (click)="inventoryService.clearSelection()" title="Clear current selection" class="text-sm font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-800 dark:hover:text-stone-100">Deselect all</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="p-6 pt-0">
+    @if (inventoryService.sortedItems().length > 0) {
+      <div class="space-y-4">
+        @for (item of inventoryService.sortedItems(); track item.id) {
+          <app-inventory-item [item]="item"></app-inventory-item>
+        }
+      </div>
+    } @else {
+      <div class="text-center py-12 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg">
+        <svg class="mx-auto h-12 w-12 text-stone-400 dark:text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-semibold text-stone-800 dark:text-stone-200">No items yet</h3>
+        <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">Get started by adding an item.</p>
+      </div>
+    }
+  </div>
+</div>
+
+
+@if (showBulkDeleteConfirmation()) {
+  <app-confirmation-dialog
+    title="Delete Selected Items"
+    [message]="'Are you sure you want to permanently delete the ' + inventoryService.selectedItemCount() + ' selected items? This action cannot be undone.'"
+    confirmText="Delete"
+    (confirm)="handleBulkDelete()"
+    (cancel)="showBulkDeleteConfirmation.set(false)">
+  </app-confirmation-dialog>
+}

@@ -1,0 +1,22 @@
+<main class="container mx-auto p-4 md:p-8">
+  <header class="mb-8">
+    <div class="flex justify-between items-center">
+      <div class="text-center sm:text-left">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-stone-900 dark:text-stone-100">Attic Inventory</h1>
+        <p class="mt-2 text-lg text-stone-600 dark:text-stone-400">Quickly catalog your treasures.</p>
+      </div>
+      <div class="flex-shrink-0">
+        <app-theme-toggle></app-theme-toggle>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+    <div class="lg:col-span-1">
+      <app-inventory-form (newItem)="handleNewItem($event)"></app-inventory-form>
+    </div>
+    <div class="lg:col-span-2">
+      <app-inventory-list></app-inventory-list>
+    </div>
+  </div>
+</main>

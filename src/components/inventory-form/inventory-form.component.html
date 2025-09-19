@@ -1,0 +1,140 @@
+<div class="bg-white p-6 rounded-2xl shadow-lg border border-stone-200 dark:bg-stone-800 dark:border-stone-700">
+  <h2 class="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-4">Add New Item</h2>
+
+  <form (ngSubmit)="handleSubmit()" class="space-y-4">
+    <!-- Photo Section -->
+    <div>
+      <label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Photo*</label>
+      <div class="p-4 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-lg text-center">
+        @switch (cameraState()) {
+          @case ('idle') {
+            <div class="flex flex-col items-center justify-center h-48">
+              <svg class="w-12 h-12 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              <button type="button" (click)="startCamera()" title="Start your device's camera" class="mt-4 bg-amber-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-amber-600 transition-colors duration-200">
+                Take Photo
+              </button>
+            </div>
+          }
+          @case ('streaming') {
+            <div class="relative">
+              <video #videoPlayer autoplay playsinline class="w-full rounded-md aspect-video object-cover bg-stone-900"></video>
+              <canvas #canvas class="hidden"></canvas>
+              <button type="button" (click)="capturePhoto()" title="Capture image" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-500 text-white rounded-full p-3 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-transform hover:scale-110">
+                <svg class="w-8 h-8" fill="white" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/></svg>
+              </button>
+            </div>
+          }
+          @case ('captured') {
+            <div class="relative">
+              <img [src]="itemPhoto()" alt="Captured item photo" class="w-full rounded-md" />
+              <button type="button" (click)="retakePhoto()" title="Discard this photo and take a new one" class="absolute top-2 right-2 bg-stone-800 bg-opacity-50 text-white font-semibold py-1 px-3 rounded-lg hover:bg-opacity-75 transition-opacity">
+                Retake
+              </button>
+            </div>
+          }
+          @case ('error') {
+            <div class="flex flex-col items-center justify-center h-48 text-red-600 dark:text-red-400">
+               <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+               <p class="mt-2 font-semibold">Camera Error</p>
+               <p class="text-sm">{{ errorMessage() }}</p>
+               <button type="button" (click)="startCamera()" title="Attempt to start the camera again" class="mt-4 bg-amber-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-amber-600 transition-colors duration-200">
+                Try Again
+              </button>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Form Fields -->
+    <div>
+      <label for="itemName" class="block text-sm font-medium text-stone-700 dark:text-stone-300">Item Name*</label>
+      <input type="text" id="itemName" name="itemName" [(ngModel)]="itemName" required
+             class="mt-1 block w-full px-3 py-2 bg-white border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-white dark:placeholder-stone-400">
+    </div>
+    
+    <div>
+      <div class="flex justify-between items-center">
+        <label for="itemType" class="block text-sm font-medium text-stone-700 dark:text-stone-300">Type*</label>
+        <button type="button" (click)="isManagingTypes.set(true)" title="Add, edit, or delete types" class="text-sm font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors">
+          Manage
+        </button>
+      </div>
+      <select id="itemType" name="itemType" [(ngModel)]="selectedTypeValue"
+              class="mt-1 block w-full px-3 py-2 bg-white border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-white">
+        @for (type of types(); track type) {
+          <option [value]="type">{{ type }}</option>
+        }
+        <option value="__new__">-- Add New Type --</option>
+      </select>
+      
+      @if (showNewTypeInput()) {
+        <input type="text" id="newType" name="newType" [(ngModel)]="newType" placeholder="Enter new type name" required
+               class="mt-2 block w-full px-3 py-2 bg-white border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-white dark:placeholder-stone-400">
+      }
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="itemValue" class="block text-sm font-medium text-stone-700 dark:text-stone-300">Value ($)</label>
+        <input type="number" id="itemValue" name="itemValue" [(ngModel)]="itemValue" placeholder="e.g., 50"
+               class="mt-1 block w-full px-3 py-2 bg-white border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-white dark:placeholder-stone-400">
+      </div>
+      <div>
+        <label for="itemStatus" class="block text-sm font-medium text-stone-700 dark:text-stone-300">Status</label>
+        <select id="itemStatus" name="itemStatus" [(ngModel)]="itemStatus"
+                class="mt-1 block w-full px-3 py-2 bg-white border border-stone-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-white">
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ status }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label for="itemHistory" class="block text-sm font-medium text-stone-700 dark:text-stone-300">History / Notes</label>
+      <textarea id="itemHistory" name="itemHistory" [(ngModel)]="itemHistory" rows="3"
+                class="mt-1 block w-full px-3 py-2 bg-white border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-white dark:placeholder-stone-400"></textarea>
+    </div>
+
+    <button type="submit" [disabled]="!isFormValid()" [title]="isFormValid() ? 'Add this item to your inventory' : 'Please fill out all required fields (*)'" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:bg-stone-400 disabled:cursor-not-allowed dark:disabled:bg-stone-600 transition-colors">
+      Add Item to Inventory
+    </button>
+  </form>
+</div>
+
+<!-- Type Management Modal -->
+@if (isManagingTypes()) {
+  <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity" (click)="isManagingTypes.set(false)">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md m-4 dark:bg-stone-900" (click)="$event.stopPropagation()">
+      <div class="flex justify-between items-center mb-4 pb-4 border-b border-stone-200 dark:border-stone-700">
+        <h3 class="text-xl font-bold text-stone-800 dark:text-stone-100">Manage Types</h3>
+        <button (click)="isManagingTypes.set(false)" title="Close" class="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 p-1 rounded-full">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+        </button>
+      </div>
+      
+      <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
+        @for (cat of types(); track cat) {
+          <div class="flex items-center justify-between p-2 rounded-md transition-colors hover:bg-stone-100 dark:hover:bg-stone-800 group">
+            @if (editingTypeName() === cat) {
+              <input type="text" [(ngModel)]="editingTypeValue" (keydown.enter)="saveTypeEdit(cat)" (keydown.escape)="cancelEditing()" class="flex-grow px-2 py-1 border border-amber-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-amber-500 text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-white" autofocus>
+              <div class="ml-2 flex-shrink-0 flex items-center space-x-2">
+                <button (click)="saveTypeEdit(cat)" title="Save changes" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 font-semibold text-sm">Save</button>
+                <button (click)="cancelEditing()" title="Discard changes" class="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-300 font-medium text-sm">Cancel</button>
+              </div>
+            } @else {
+              <span class="text-stone-700 dark:text-stone-300">{{ cat }}</span>
+              <div class="flex-shrink-0 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button (click)="startEditing(cat)" title="Edit this type name" class="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 font-medium text-sm">Edit</button>
+                @if (cat !== 'Miscellaneous') {
+                  <button (click)="deleteType(cat)" title="Delete this type" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm">Delete</button>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

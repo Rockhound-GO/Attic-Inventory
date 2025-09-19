@@ -1,0 +1,7 @@
+{
+  "name": "Attic Inventory",
+  "description": "A simple and fast inventory management app designed for easily cataloging items while cleaning, featuring quick photo capture and categorization.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
