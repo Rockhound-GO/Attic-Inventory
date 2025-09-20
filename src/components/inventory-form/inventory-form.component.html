@@ -19,6 +19,34 @@
             <div class="relative">
               <video #videoPlayer autoplay playsinline class="w-full rounded-md aspect-video object-cover bg-stone-900"></video>
               <canvas #canvas class="hidden"></canvas>
+              
+              <!-- Switch camera button -->
+              @if (canSwitchCamera()) {
+                <button type="button" (click)="switchCamera()" title="Switch camera" class="absolute top-2 right-2 bg-stone-800 bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-75 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors">
+                  <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.181-3.183m-4.991-2.695v-4.992m0 0h-4.992m4.992 0l-3.181-3.183a8.25 8.25 0 00-11.664 0l-3.181 3.183" />
+                  </svg>
+                </button>
+              }
+
+              <!-- Zoom slider -->
+              @if (canZoom()) {
+                <div class="absolute bottom-20 left-1/2 -translate-x-1/2 w-11/12 max-w-xs px-4">
+                  <div class="flex items-center gap-2 bg-stone-800 bg-opacity-50 p-2 rounded-full backdrop-blur-sm">
+                      <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM13.5 10.5h-6" /></svg>
+                      <input type="range" 
+                             [min]="zoomMin()" 
+                             [max]="zoomMax()" 
+                             [step]="zoomStep()" 
+                             [value]="zoomLevel()"
+                             (input)="zoomLevel.set(+$any($event.target).value)"
+                             aria-label="Zoom control"
+                             class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer dark:bg-stone-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-500">
+                      <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" /></svg>
+                  </div>
+                </div>
+              }
+
               <button type="button" (click)="capturePhoto()" title="Capture image" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-500 text-white rounded-full p-3 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-transform hover:scale-110">
                 <svg class="w-8 h-8" fill="white" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/></svg>
               </button>

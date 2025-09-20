@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, output, viewChild, ElementRef, signal, inject, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, output, viewChild, ElementRef, signal, inject, computed, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { InventoryService } from '../../services/inventory.service';
 import { InventoryItem } from '../../models/inventory-item.model';
@@ -42,6 +42,26 @@ export class InventoryFormComponent {
   canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
   stream: MediaStream | null = null;
 
+  // New camera feature states
+  cameraFacingMode = signal<'user' | 'environment'>('environment');
+  canSwitchCamera = signal(false);
+  canZoom = signal(false);
+  zoomLevel = signal(1);
+  zoomMin = signal(1);
+  zoomMax = signal(10);
+  zoomStep = signal(0.1);
+
+  constructor() {
+    effect(() => {
+      const level = this.zoomLevel();
+      if (this.stream && this.canZoom()) {
+        const track = this.stream.getVideoTracks()[0];
+        // @ts-ignore - applyConstraints is available on MediaStreamTrack
+        track.applyConstraints({ advanced: [{ zoom: level }] }).catch(e => console.error('Error applying zoom', e));
+      }
+    });
+  }
+
   isFormValid = computed(() => {
     const nameValid = !!this.itemName().trim();
     const photoValid = !!this.itemPhoto();
@@ -55,23 +75,79 @@ export class InventoryFormComponent {
   });
 
   async startCamera() {
+    this.stopCamera();
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        this.stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: this.cameraFacingMode(),
+            } 
+        });
+        this.errorMessage.set('');
         const video = this.videoRef()?.nativeElement;
         if (video) {
           video.srcObject = this.stream;
           video.play();
           this.cameraState.set('streaming');
+          await this.checkCameraCapabilities();
         }
       } else {
         throw new Error('Camera not supported on this device.');
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
+      if (this.cameraFacingMode() === 'environment') {
+        this.cameraFacingMode.set('user');
+        console.log('Environment camera failed, trying user camera...');
+        this.startCamera(); // Try again with front camera
+        return;
+      }
       this.errorMessage.set('Could not access the camera. Please check permissions.');
       this.cameraState.set('error');
     }
+  }
+
+  async checkCameraCapabilities() {
+    // Check for multiple cameras
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      this.canSwitchCamera.set(videoDevices.length > 1);
+    } catch (e) {
+      console.error('Could not enumerate devices', e);
+      this.canSwitchCamera.set(false);
+    }
+
+
+    // Check for zoom support
+    if (this.stream) {
+        const track = this.stream.getVideoTracks()[0];
+        if (track && 'getCapabilities' in track) {
+            const capabilities = track.getCapabilities();
+            // @ts-ignore
+            if (capabilities.zoom) {
+                // @ts-ignore
+                const zoomCaps = capabilities.zoom;
+                if (zoomCaps.max > zoomCaps.min) {
+                    this.canZoom.set(true);
+                    this.zoomMin.set(zoomCaps.min);
+                    this.zoomMax.set(zoomCaps.max);
+                    this.zoomStep.set(zoomCaps.step);
+                    // @ts-ignore
+                    this.zoomLevel.set(track.getSettings().zoom || 1);
+                } else {
+                    this.canZoom.set(false);
+                }
+            } else {
+                this.canZoom.set(false);
+            }
+        }
+    }
+  }
+
+  switchCamera() {
+    this.cameraFacingMode.update(mode => mode === 'environment' ? 'user' : 'environment');
+    this.startCamera();
   }
 
   capturePhoto() {
@@ -101,6 +177,8 @@ export class InventoryFormComponent {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
     }
+    this.canSwitchCamera.set(false);
+    this.canZoom.set(false);
   }
 
   handleSubmit() {
@@ -132,31 +210,29 @@ export class InventoryFormComponent {
     this.itemStatus.set('To Sort');
     this.itemPhoto.set(null);
     this.cameraState.set('idle');
+    this.stopCamera();
   }
 
-  // --- Type Management Methods ---
-  
-  startEditing(type: string): void {
-    this.editingTypeName.set(type);
-    this.editingTypeValue.set(type);
+  // --- Type Management ---
+  startEditing(typeName: string) {
+    this.editingTypeName.set(typeName);
+    this.editingTypeValue.set(typeName);
   }
 
-  cancelEditing(): void {
+  cancelEditing() {
     this.editingTypeName.set(null);
     this.editingTypeValue.set('');
   }
 
-  saveTypeEdit(oldName: string): void {
+  saveTypeEdit(oldName: string) {
     const newName = this.editingTypeValue().trim();
-    if (newName && oldName !== newName) {
+    if (newName && newName !== oldName) {
       this.inventoryService.updateType(oldName, newName);
     }
     this.cancelEditing();
   }
 
-  deleteType(name: string): void {
-    if (confirm(`Are you sure you want to delete the "${name}" type? Items of this type will be moved to "Miscellaneous".`)) {
-      this.inventoryService.deleteType(name);
-    }
+  deleteType(typeName: string) {
+    this.inventoryService.deleteType(typeName);
   }
 }
